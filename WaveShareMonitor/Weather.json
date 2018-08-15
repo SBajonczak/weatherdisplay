@@ -1,0 +1,40 @@
+{
+    "coord": {
+        "lon": 7.13,
+        "lat": 51.48
+    },
+    "weather": [{
+        "id": 802,
+        "main": "Clouds",
+        "description": "scattered clouds",
+        "icon": "03d"
+    }],
+    "base": "stations",
+    "main": {
+        "temp": 296.75,
+        "pressure": 1015,
+        "humidity": 47,
+        "temp_min": 295.15,
+        "temp_max": 298.15
+    },
+    "visibility": 10000,
+    "wind": {
+        "speed": 6.7,
+        "deg": 300
+    },
+    "clouds": {
+        "all": 40
+    },
+    "dt": 1534254600,
+    "sys": {
+        "type": 1,
+        "id": 4886,
+        "message": 0.0023,
+        "country": "DE",
+        "sunrise": 1534220167,
+        "sunset": 1534272894
+    },
+    "id": 160006598,
+    "name": "Gelsenkirchen",
+    "cod": 200
+}
