@@ -1,52 +1,65 @@
+// Contains the weathersymbols
 #include "images.h"
 // Wifi package
 #include <ESP8266WiFi.h>
 // IMportant for the MQTT Libary
 #include <Ethernet.h>
-// include library, include base class, make path known
-#include <GxEPD.h>
 #include <GxFont_GFX.h>
 #include <PubSubClient.h>
-// Some GFX libs
-#include <Adafruit_GFX.h>
-#include <Adafruit_SPITFT.h>
-#include <Adafruit_SPITFT_Macros.h>
-#include <gfxfont.h>
 // Time Libary
 #include <time.h>
+
+// IO Port, important for the DHT Sensor
+#include <GxIO/GxIO.cpp>
 // Temp sensor libary
 #include <DHTesp.h>
 
+// include library, include base class, make path known
+#include <GxEPD.h>
+// SPI libary for the communication between EINK and ESP
+#include <GxIO/GxIO_SPI/GxIO_SPI.cpp>
 // select the display class to use, only one
 //#include <GxGDEW075Z09/GxGDEW075Z09.cpp> // 7.5" b/w/r
 #include <GxGDEW075T8/GxGDEW075T8.cpp>
 
+// Some GFX libs, required for the Waveshare and fonts libary
+#include <Adafruit_GFX.h>
+#include <Adafruit_SPITFT.h>
+#include <Adafruit_SPITFT_Macros.h>
+#include <gfxfont.h>
 // FreeFonts from Adafruit_GFX
+// Font for the Title in the temperature display
 #include <Fonts/FreeMono9pt7b.h>
+// Font for the time display
 #include <Fonts/FreeMonoBold18pt7b.h>
+// Font for the Temperatur values
 #include <Fonts/FreeMonoBold12pt7b.h>
-#include <GxIO/GxIO_SPI/GxIO_SPI.cpp>
-#include <GxIO/GxIO.cpp>
 // Global var, getting from IO Broker
 double outerTempValue;
+// Gloabl var, getting from IO Broker.
+String weatherIcon;
+
 // Setting up the display
 GxIO_Class io(SPI, /*CS=D8*/ SS, /*DC=D3*/ 0, /*RST=D4*/ 2); // arbitrary selection of D3(=0), D4(=2), selected for default of GxEPD_Class
 GxEPD_Class display(io /*RST=D4*/ /*BUSY=D2*/);              // default selection of D4(=2), D2(=4)
+// The IP To the MQTT Server
 byte server[] = {192, 168, 2, 122};
+// The MAC Adress for the ESP Device
 byte mac[] = {0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED};
 
-//void callback(char *topic, byte *payload, unsigned int length);
 // from https://github.com/computergeek1507/arduino/blob/master/PinControlMQTT/PinControlMQTT.ino
+
 // WIFI
 WiFiClient espClient;
 // MQTT Client
 PubSubClient client(espClient);
+// The DHT Sensor instance
 DHTesp dhtSensor;
+// The connected pin where the dht is attached
 int dhtPin = 1;
 
 void setup()
 {
-
   Serial.begin(115200);
   Serial.println();
   Serial.println("setup");
@@ -218,17 +231,19 @@ void UpdateInnerTempValue(int x, int y)
   display.setCursor(x, y);
   display.println(innerTemp);
 }
-String weatherIcon;
 void callback(char *topic, byte *payload, unsigned int length)
 {
   Serial.println("Callback fired");
+  // Set som vars.
   char buff[256], echostring[512];
-  int n, on;
+  int n;
   for (n = 0; (n < length) && (n < sizeof(buff) - 1); n++)
   {
     buff[n] = payload[n];
   }
+  // Clear the buffer to prevent memoy leaks
   buff[n] = 0;
+
   sprintf(echostring, "%s", buff);
 
   if (strcmp(topic, "clients/nodemcu/MDisplay/temp") == 0)
