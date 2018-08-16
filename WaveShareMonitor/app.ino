@@ -208,6 +208,7 @@ void UpdateImage(int x, int y)
 {
   Serial.print("Drawing Weatherimage: ");
   Serial.println(weatherIcon);
+
   if (!weatherIcon)
   {
     Serial.println("No Weathericon set, print default one");
@@ -215,6 +216,11 @@ void UpdateImage(int x, int y)
   }
   else if (weatherIcon == "icon256_01d")
   {
+    switch (weatherIcon)
+    {
+    case "":
+      break;
+    }
     display.drawBitmap(icon256_01d, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_02d")
