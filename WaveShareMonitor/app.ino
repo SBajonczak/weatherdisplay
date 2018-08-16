@@ -56,7 +56,7 @@ PubSubClient client(espClient);
 // The DHT Sensor instance
 DHTesp dhtSensor;
 // The connected pin where the dht is attached
-int dhtPin = 1;
+int dhtPin = 5;
 
 void setup()
 {
@@ -65,10 +65,10 @@ void setup()
   Serial.println("setup");
   InitializeTemperatureSensor();
   SetupWifi();
+  SetUpMQTT();
   Serial.println("Setting up timeserver");
   configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
   Serial.println("\nWaiting for time");
-  SetUpMQTT();
   display.init(115200); // enable diagnostic output on Serial
   Serial.println("setup done");
 }
@@ -87,7 +87,7 @@ void SetupWifi()
 void InitializeTemperatureSensor()
 {
   Serial.println("Initialize Temperature Sensor");
-  dhtSensor.setup(dhtPin, DHTesp::DHT11);
+  dhtSensor.setup(dhtPin, DHTesp::DHT22);
 }
 void SetUpMQTT()
 {
@@ -97,41 +97,41 @@ void SetUpMQTT()
   Ethernet.begin(mac, WiFi.localIP());
   Serial.println("Setup MQTT completed");
 
-  Serial.println("MQTT trying to connect");
+  Serial.print("MQTT trying to connect");
   while (!client.connected())
   {
     Serial.print(".");
     if (client.connect("DisplayMarijke", "sascha", "tumalonga2411"))
     {
-      Serial.println(client.connected());
-      Serial.println("Sending testmessages");
-      // Abonieren von Nachrichten mit dem angegebenen Topic
-      client.subscribe("clients/nodemcu/MDisplay/#");
       Serial.println("MQTT connected");
+      // Abonieren von Nachrichten mit dem angegebenen Topic
+      Serial.println("Subsscripe to Topics");
+      client.subscribe("clients/nodemcu/#");
+      client.subscribe("icon");
     }
     else
     {
-      Serial.println("MQTT not connected");
-      Serial.println(client.state());
       delay(2000);
     }
   }
+  client.loop();
+  client.loop();
 }
 
 void loop()
 {
 
+  SetUpMQTT();
   delay(5000); // Pause 5 Sekunden
-  //SetUpMQTT();
+  SubscribeMqtt();
   SubscribeMqtt();
   ShowDashboard();
   delay(60000); // Pause 60 Sekunden
+  SetUpMQTT();
 }
 
 void SubscribeMqtt()
 {
-  Serial.print("MQTT Connected:");
-  Serial.println(client.connected());
   client.loop();
 }
 void ShowDashboard()
@@ -142,8 +142,6 @@ void ShowDashboard()
   Serial.println(boxWidth);
   Serial.println(boxHeight);
   Serial.println(topMiddleLine);
-
-  // h: 640  / v: 384 px
   display.fillScreen(GxEPD_WHITE);
   display.setTextColor(GxEPD_BLACK);
 #if defined(HAS_RED_COLOR)
@@ -179,12 +177,14 @@ void ShowDashboard()
   UpdateInnerTempValue(((display.width() - boxWidth)) + 10, topMiddleLine);
   int imageX = (display.width() / 2) - (256 / 2);
   int imageY = (display.height() / 4) + 25;
-  display.drawBitmap(icon256_01d, imageX, imageY, 256, 256, GxEPD_WHITE);
+
+  UpdateImage(imageX, imageY);
   display.update();
 }
 
 void UpdateTime(int x, int y)
 {
+  Serial.println("Drawing Time");
   // Writing Text Center box
   char *buf = getTime();
   display.setFont(&FreeMonoBold18pt7b);
@@ -200,7 +200,64 @@ void UpdateOuterTempValue(int x, int y, double value)
   display.setFont(&FreeMonoBold12pt7b);
   display.setTextSize(2);
   display.setCursor(x, y);
+
   display.println(outerTempValue);
+}
+
+void UpdateImage(int x, int y)
+{
+  Serial.print("Drawing Weatherimage: ");
+  Serial.println(weatherIcon);
+  if (!weatherIcon)
+  {
+    Serial.println("No Weathericon set, print default one");
+    display.drawBitmap(icon256_01d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_01d")
+  {
+    display.drawBitmap(icon256_01d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_02d")
+  {
+    display.drawBitmap(icon256_02d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_02n")
+  {
+    display.drawBitmap(icon256_02n, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_03d")
+  {
+    display.drawBitmap(icon256_03d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_04d")
+  {
+    Serial.println("Drawing icon256_04d");
+    display.drawBitmap(icon256_04d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_09d")
+  {
+    display.drawBitmap(icon256_09d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_10d")
+  {
+    display.drawBitmap(icon256_10d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_11d")
+  {
+    display.drawBitmap(icon256_11d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_13d")
+  {
+    display.drawBitmap(icon256_13d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_50d")
+  {
+    display.drawBitmap(icon256_50d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_50n")
+  {
+    display.drawBitmap(icon256_50n, x, y, 256, 256, GxEPD_WHITE);
+  }
 }
 
 char *getTime()
@@ -211,7 +268,7 @@ char *getTime()
   time(&now);
   timeinfo = localtime(&now);
   int hour = timeinfo->tm_hour;
-  sprintf(buf, "%i:%i", timeinfo->tm_hour, timeinfo->tm_min);
+  sprintf(buf, "%i:%02i", (timeinfo->tm_hour - 1), timeinfo->tm_min);
   Serial.println(buf);
   return buf;
 }
@@ -219,10 +276,15 @@ String getIndoorTemperature()
 {
   Serial.println("Try to fetch Temp from Sensor");
   TempAndHumidity lastValues = dhtSensor.getTempAndHumidity();
-  return String(lastValues.temperature, 0);
+  Serial.println("Sending temp and humidity to queue");
+  client.publish("clients/nodemcu/Sensors/wohnzimmer/temp", String(lastValues.temperature).c_str());
+  client.publish("clients/nodemcu/Sensors/wohnzimmer/hum", String(lastValues.humidity).c_str());
+
+  return String(lastValues.temperature, 2);
 }
 void UpdateInnerTempValue(int x, int y)
 {
+  Serial.println("Try to get inner Temp value");
   String innerTemp = getIndoorTemperature();
   Serial.print("Drawing inner temp: ");
   Serial.println(innerTemp);
@@ -243,18 +305,24 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
   // Clear the buffer to prevent memoy leaks
   buff[n] = 0;
+  sprintf(echostring, "%s %s", topic, buff);
+  Serial.println(echostring);
 
   sprintf(echostring, "%s", buff);
-
   if (strcmp(topic, "clients/nodemcu/MDisplay/temp") == 0)
   {
     Serial.println("Setting new outdoor Temperature value from Topic");
     outerTempValue = atof(echostring);
   }
 
-  if (strcmp(topic, "clients/nodemcu/MDisplay/icon") == 0)
+  if (strcmp(topic, "clients/nodemcu/MDisplay/icon") == 0 || strcmp(topic, "icon") == 0)
   {
-    Serial.println("Setting new weathericon value from Topic");
-    weatherIcon = String(echostring);
+    if (strlen(buff) > 4)
+    {
+      Serial.print("STRLEN ");
+      Serial.println(strlen(buff));
+      Serial.println("Setting new weathericon value from Topic");
+      weatherIcon = String(buff);
+    }
   }
 }
