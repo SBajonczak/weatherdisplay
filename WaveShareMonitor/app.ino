@@ -34,6 +34,20 @@
 #include <Fonts/FreeMonoBold18pt7b.h>
 // Font for the Temperatur values
 #include <Fonts/FreeMonoBold12pt7b.h>
+
+//WIFI connection
+const char *WIFIPASS = "";
+const char *SID = "";
+
+// Connecting to IOBROKER
+const char *IOBROKER_USER = "";
+const char *IOBROKER_PASS = "";
+
+// The IP To the MQTT Server
+byte server[] = {192, 168, 2, 122};
+// The MAC Adress for the ESP Device
+byte mac[] = {0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED};
+
 // Global var, getting from IO Broker
 double outerTempValue;
 // Gloabl var, getting from IO Broker.
@@ -42,10 +56,6 @@ String weatherIcon;
 // Setting up the display
 GxIO_Class io(SPI, /*CS=D8*/ SS, /*DC=D3*/ 0, /*RST=D4*/ 2); // arbitrary selection of D3(=0), D4(=2), selected for default of GxEPD_Class
 GxEPD_Class display(io /*RST=D4*/ /*BUSY=D2*/);              // default selection of D4(=2), D2(=4)
-// The IP To the MQTT Server
-byte server[] = {192, 168, 2, 122};
-// The MAC Adress for the ESP Device
-byte mac[] = {0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED};
 
 // from https://github.com/computergeek1507/arduino/blob/master/PinControlMQTT/PinControlMQTT.ino
 
@@ -76,7 +86,7 @@ void setup()
 void SetupWifi()
 {
   WiFi.mode(WIFI_STA);
-  WiFi.begin("Fritzrepeater2", "tumalonga2411");
+  WiFi.begin(SID, WIFIPASS);
   Serial.println("\nConnecting to WiFi");
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -101,7 +111,8 @@ void SetUpMQTT()
   while (!client.connected())
   {
     Serial.print(".");
-    if (client.connect("DisplayMarijke", "sascha", "tumalonga2411"))
+    client.connect("DisplayMarijke", IOBROKER_USER, IOBROKER_PASS);
+    if (client.connected())
     {
       Serial.println("MQTT connected");
       // Abonieren von Nachrichten mit dem angegebenen Topic
@@ -206,8 +217,6 @@ void UpdateOuterTempValue(int x, int y, double value)
 
 void UpdateImage(int x, int y)
 {
-  Serial.print("Drawing Weatherimage: ");
-  Serial.println(weatherIcon);
 
   if (!weatherIcon)
   {
@@ -216,23 +225,27 @@ void UpdateImage(int x, int y)
   }
   else if (weatherIcon == "icon256_01d")
   {
-    switch (weatherIcon)
-    {
-    case "":
-      break;
-    }
+    Serial.println("Drawing icon256_01d");
     display.drawBitmap(icon256_01d, x, y, 256, 256, GxEPD_WHITE);
+  }
+  else if (weatherIcon == "icon256_01n")
+  {
+    Serial.println("Drawing icon256_01n");
+    display.drawBitmap(icon256_01n, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_02d")
   {
+    Serial.println("Drawing icon256_02d");
     display.drawBitmap(icon256_02d, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_02n")
   {
+    Serial.println("Drawing icon256_02n");
     display.drawBitmap(icon256_02n, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_03d")
   {
+    Serial.println("Drawing icon256_03d");
     display.drawBitmap(icon256_03d, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_04d")
@@ -242,26 +255,32 @@ void UpdateImage(int x, int y)
   }
   else if (weatherIcon == "icon256_09d")
   {
+    Serial.println("Drawing icon256_09d");
     display.drawBitmap(icon256_09d, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_10d")
   {
+    Serial.println("Drawing icon256_10d");
     display.drawBitmap(icon256_10d, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_11d")
   {
+    Serial.println("Drawing icon256_11d");
     display.drawBitmap(icon256_11d, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_13d")
   {
+    Serial.println("Drawing icon256_13d");
     display.drawBitmap(icon256_13d, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_50d")
   {
+    Serial.println("Drawing icon256_50d");
     display.drawBitmap(icon256_50d, x, y, 256, 256, GxEPD_WHITE);
   }
   else if (weatherIcon == "icon256_50n")
   {
+    Serial.println("Drawing icon256_50n");
     display.drawBitmap(icon256_50n, x, y, 256, 256, GxEPD_WHITE);
   }
 }
