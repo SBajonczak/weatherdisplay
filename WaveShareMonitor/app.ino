@@ -34,22 +34,20 @@
 #include <Fonts/FreeMonoBold18pt7b.h>
 // Font for the Temperatur values
 #include <Fonts/FreeMonoBold12pt7b.h>
-
-//WIFI connection
 const char *WIFIPASS = "";
 const char *SID = "";
 
 // Connecting to IOBROKER
 const char *IOBROKER_USER = "";
 const char *IOBROKER_PASS = "";
+const char *mqttServer = "";
 
-// The IP To the MQTT Server
-byte server[] = {192, 168, 2, 122};
 // The MAC Adress for the ESP Device
 byte mac[] = {0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED};
 
 // Global var, getting from IO Broker
 double outerTempValue;
+double innerTempValue;
 // Gloabl var, getting from IO Broker.
 String weatherIcon;
 
@@ -77,7 +75,8 @@ void setup()
   SetupWifi();
   SetUpMQTT();
   Serial.println("Setting up timeserver");
-  configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+  // Set Timezone to +1 (1* 3600)
+  configTime(1 * 3600, 0, "pool.ntp.org", "time.nist.gov");
   Serial.println("\nWaiting for time");
   display.init(115200); // enable diagnostic output on Serial
   Serial.println("setup done");
@@ -102,7 +101,9 @@ void InitializeTemperatureSensor()
 void SetUpMQTT()
 {
   Serial.println("Setup MQTT");
-  client.setServer(server, 1886);
+  //  client.setServer(server, 1886);
+
+  client.setServer(mqttServer, 1886);
   client.setCallback(callback);
   Ethernet.begin(mac, WiFi.localIP());
   Serial.println("Setup MQTT completed");
@@ -185,7 +186,7 @@ void ShowDashboard()
   display.setFont(&FreeMono9pt7b);
   display.setCursor((display.width() - boxWidth), 10);
   display.println("Innen Temp.");
-  UpdateInnerTempValue(((display.width() - boxWidth)) + 10, topMiddleLine);
+  UpdateInnerTempValue(((display.width() - boxWidth)) + 10, topMiddleLine, innerTempValue);
   int imageX = (display.width() / 2) - (256 / 2);
   int imageY = (display.height() / 4) + 25;
 
@@ -293,30 +294,20 @@ char *getTime()
   time(&now);
   timeinfo = localtime(&now);
   int hour = timeinfo->tm_hour;
-  sprintf(buf, "%i:%02i", (timeinfo->tm_hour - 1), timeinfo->tm_min);
+  sprintf(buf, "%i:%02i", (timeinfo->tm_hour), timeinfo->tm_min);
   Serial.println(buf);
   return buf;
 }
-String getIndoorTemperature()
-{
-  Serial.println("Try to fetch Temp from Sensor");
-  TempAndHumidity lastValues = dhtSensor.getTempAndHumidity();
-  Serial.println("Sending temp and humidity to queue");
-  client.publish("clients/nodemcu/Sensors/wohnzimmer/temp", String(lastValues.temperature).c_str());
-  client.publish("clients/nodemcu/Sensors/wohnzimmer/hum", String(lastValues.humidity).c_str());
 
-  return String(lastValues.temperature, 2);
-}
-void UpdateInnerTempValue(int x, int y)
+void UpdateInnerTempValue(int x, int y, double value)
 {
   Serial.println("Try to get inner Temp value");
-  String innerTemp = getIndoorTemperature();
   Serial.print("Drawing inner temp: ");
-  Serial.println(innerTemp);
+  Serial.println(value);
   display.setFont(&FreeMonoBold12pt7b);
   display.setTextSize(2);
   display.setCursor(x, y);
-  display.println(innerTemp);
+  display.println(value);
 }
 void callback(char *topic, byte *payload, unsigned int length)
 {
@@ -338,6 +329,12 @@ void callback(char *topic, byte *payload, unsigned int length)
   {
     Serial.println("Setting new outdoor Temperature value from Topic");
     outerTempValue = atof(echostring);
+  }
+
+  if (strcmp(topic, "clients/nodemcu/MDisplay/intemp") == 0)
+  {
+    Serial.println("Setting new indoor Temperature value from Topic");
+    innerTempValue = atof(echostring);
   }
 
   if (strcmp(topic, "clients/nodemcu/MDisplay/icon") == 0 || strcmp(topic, "icon") == 0)
